@@ -7,9 +7,12 @@
 ```bash
 pip install -r requirements.txt
 ```
+### With the Docker compose
 
 (Optionally) Start the embedder service separately.
+
 > Note that Docker compose will start this service as well, this step is thus optional.
+
 ```bash
 export LANGCHAIN_TRACING_V2=true
 export LANGCHAIN_API_KEY=${your_langchain_api_key}
@@ -42,9 +45,36 @@ revision=refs/pr/4
 # TEI_EMBEDDING_ENDPOINT="http://${your_ip}:6060"  # uncomment if you want to use the hosted embedding service, example: "http://127.0.0.1:6060"
 ```
 
+## Setting up the Pathway data sources
+
+Pathway can listen to many sources simultaneously, such as local files, S3 folders, cloud storage, and any data stream. Whenever a new file is added or an existing file is modified, Pathway parses, chunks and indexes the documents in real-time.
+
+See [pathway-io](https://pathway.com/developers/api-docs/pathway-io) for more information.
+
+You can easily connect to the data inside the folder with the Pathway file system connector. The data will automatically be updated by Pathway whenever the content of the folder changes. In this example, we create a single data source that reads the files under the `./data` folder.
+
+You can manage your data sources by configuring the `data_sources` in `pathway_vs.py`.
+
+```python
+import pathway as pw
+
+data = pw.io.fs.read(
+    "./data",
+    format="binary",
+    mode="streaming",
+    with_metadata=True,
+)  # This creates a Pathway connector that tracks
+# all the files in the ./data directory
+
+data_sources = [data]
+```
+
 Build the Docker and run the Pathway Vector Store:
+
 ```bash
-docker build -f Dockerfile.pathway -t vectorstore-pathway .
+cd comps/retrievers/langchain/pathway
+
+docker build -t vectorstore-pathway .
 
 # with locally loaded model, you may add `EMBED_MODEL` env variable to configure the model.
 docker run -e PATHWAY_HOST=${PATHWAY_HOST} -e PATHWAY_PORT=${PATHWAY_PORT} -v ./data:/app/data -p ${PATHWAY_PORT}:${PATHWAY_PORT} vectorstore-pathway
@@ -54,6 +84,7 @@ docker run -e PATHWAY_HOST=${PATHWAY_HOST} -e PATHWAY_PORT=${PATHWAY_PORT} -e TE
 ```
 
 ## Start Retriever Service
+
 Note that the retriever service also expects the Pathway host and port variables to connect to the vector DB.
 
 ### With the Docker CLI
@@ -64,6 +95,7 @@ docker build -t opea/retriever-pathway:latest --build-arg https_proxy=$https_pro
 
 docker run -p 7000:7000 -e PATHWAY_HOST=${PATHWAY_HOST} -e PATHWAY_PORT=${PATHWAY_PORT} --network="host" opea/retriever-pathway:latest
 ```
+
 ### With the Docker compose
 
 ```bash
@@ -77,11 +109,13 @@ docker compose -f docker_compose_retriever.yaml down
 ```
 
 Make sure the retriever service is working as expected:
+
 ```bash
 curl http://0.0.0.0:7000/v1/health_check   -X GET   -H 'Content-Type: application/json'
 ```
 
 send an example query:
+
 ```bash
 exm_embeddings=$(python -c "import random; embedding = [random.uniform(-1, 1) for _ in range(768)]; print(embedding)")
 

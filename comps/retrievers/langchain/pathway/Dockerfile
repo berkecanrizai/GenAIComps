@@ -1,3 +1,6 @@
+# Copyright (C) 2024 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
 FROM pathwaycom/pathway:0.13.2-slim
 
 ENV DOCKER_BUILDKIT=1
@@ -17,6 +20,4 @@ RUN pip install sentence_transformers
 
 COPY pathway_vs.py /app/
 
-
 CMD ["python", "pathway_vs.py"]
-
